@@ -131,7 +131,7 @@ module.exports = {
         filename: '[name]_[chunkhash:8].js'
     },
     // mode: "production",
-    mode: "none",
+    mode: "development",
     plugins: [
         // 自动清除打包产物
         new CleanWebpackPlugin(),
