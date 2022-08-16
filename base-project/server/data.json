@@ -1,0 +1,24 @@
+{
+	"code": 0,
+	"data": {
+		"pvip_auto_renewal": {
+			"month": {
+				"first_price": 0,
+				"market_price": 9900,
+				"sale_price": 5800,
+				"day": 31
+			},
+			"year": {
+				"first_price": 0,
+				"market_price": 299900,
+				"sale_price": 299900,
+				"day": 366
+			}
+		}
+	},
+	"error": {},
+	"extra": {
+		"cost": 0.007641081,
+		"request-id": "50cfb6dae01e99900545367312147dfb@2@time"
+	}
+}

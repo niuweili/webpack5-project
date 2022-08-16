@@ -1,6 +1,9 @@
 const path = require('path');
 const glob = require('glob');
+// 不支持ssr
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+// ssr css
+// const ExtractCssChunks = require('extract-css-chunks-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
@@ -12,29 +15,29 @@ const HtmlWebpackExternalsPlugin = require('html-webpack-externals-plugin')
 const seMPA = () => {
     const entry = {}
     const htmlWebpackPlugins = []
-    const entryFiles = glob.sync(path.join(__dirname, './src/*/index.js'))
+    const entryFiles = glob.sync(path.join(__dirname, './src/*/client.js'))
 
     entryFiles.forEach(item => {
-        const pageName = item.match(/src\/(.*)\/index\.js/)[1]
-
-        entry[pageName] = item
-
-        htmlWebpackPlugins.push(
-            new HtmlWebpackPlugin({
-                template: path.join(__dirname, `./src/${pageName}/index.html`),
-                filename: `${pageName}/index.html`,
-                chunks: [pageName, 'commons'],
-                inject: true,
-                minify: {
-                    html5: true,
-                    collapseWhitespace: true,
-                    preserveLineBreaks: false,
-                    minifyCSS: true,
-                    minifyJS: true,
-                    removeComments: false
-                }
-            }),
-        )
+        const pageName = item.match(/src\/(.*)\/client\.js/)[1]
+        if (pageName) {
+            entry[pageName] = item
+            htmlWebpackPlugins.push(
+                new HtmlWebpackPlugin({
+                    template: path.join(__dirname, `./src/${pageName}/index.html`),
+                    filename: `${pageName}/index.html`,
+                    chunks: [`${pageName}`, 'commons'],
+                    inject: true,
+                    minify: {
+                        html5: true,
+                        collapseWhitespace: true,
+                        preserveLineBreaks: false,
+                        minifyCSS: true,
+                        minifyJS: true,
+                        removeComments: false
+                    }
+                }),
+            )
+        }
     })
 
     return {
@@ -107,47 +110,62 @@ module.exports = {
     },
     // devtool: 'source-map', // 是否开启source-map
     optimization: {
-        // minimize: false,  // 代码是否会被压缩
+        usedExports: 'global',
+        // minimize: true,  // 代码是否会被压缩
         minimizer: [
             // css代码压缩
-            new CssMinimizerPlugin(),
+            // new CssMinimizerPlugin(),
             new TerserPlugin() // 为了解决使用CssMinimizerPlugin后js文件无法被压缩
         ],
         splitChunks: {
             minSize: 0, // 被引用的文件大小
             cacheGroups: {
                 // 公用模块单独打包
-                // TODO: 多页面拆分无法处理文件夹目录
-                // commons: {
-                //     minChunks: 2, // 引用次数
-                //     name: 'commons',
-                //     chunks: 'all',
-                // },
-                // vue资源单独打包到vendors.js中
-                vendors: {
-                    test: /vue/,
-                    name: 'vendors',
+                server: {
+                    // minChunks: 1, // 引用次数
+                    test: /[\\/]src[\\/]watch[\\/]server\.js/,
+                    name: 'server',
+                    chunks: 'all',
+                    usedExports: true
+                },
+                commons: {
+                    minChunks: 2, // 引用次数
+                    name: 'commons',
                     chunks: 'all',
                 },
+                // vue资源单独打包到vendors.js中
+                // vendors: {
+                //     test: /vue/,
+                //     name: 'vendors',
+                //     chunks: 'all',
+                // },
             },
         },
     },
     entry,
     output: {
-        publicPath: "../",
+        publicPath: "/",
         path: path.join(__dirname, 'dist'),
         filename: function (chunkData) {
             const { name, runtime } = chunkData.chunk
-            if (runtime.size > 0) {
-                return `common/js/${name}_[chunkhash].js`
+            // if (runtime.size > 0) {
+            //     return `common/js/${name}-server.js`
+            // }
+            console.log('filename-->', name)
+            if (name.indexOf('server') > -1) {
+                return `${runtime}/js/${runtime}-server.js`
             }
-            return `${name}/js/${name}_[chunkhash].js`
+            return `${name}/js/${name}-client.js`
         },
-        chunkFilename: function (chunkData) {
-            const name = chunkData.chunk.name || chunkData.chunk.id
-            const dirName = chunkData.chunk.runtime
-            return `${dirName}/js/${name}_[chunkhash].js`
-        }
+        // chunkFilename: function (chunkData) {
+        //     const name = chunkData.chunk.name || chunkData.chunk.id
+        //     const dirName = chunkData.chunk.runtime
+        //     return `${dirName}/js/${name}-servers.js`
+        // },
+        library: {
+            type: 'umd',
+            // export: 'default'
+        },
     },
     // mode: "production",
     mode: "development",
@@ -159,7 +177,10 @@ module.exports = {
         // 将css提取到单独的文件中
         new MiniCssExtractPlugin({
             filename: function (chunkData) {
-                const { name } = chunkData.chunk
+                const { name, runtime } = chunkData.chunk
+                if (name.indexOf('server') > -1) {
+                    return `${runtime}/css/${name}_[contenthash].css`
+                }
                 return `${name}/css/${name}_[contenthash].css`
             }
         }),

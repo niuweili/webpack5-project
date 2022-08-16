@@ -2,8 +2,8 @@ import { createApp } from 'vue';
 import logo from "../images/logo.png"
 import { common } from "../../common";
 import './watch.less'
-// import largeNumber from 'nwl-large-number';
-const largeNumber = require('nwl-large-number')
+import largeNumber from 'nwl-large-number';
+// const largeNumber = require('nwl-large-number')
 
 // 创建一个Vue 应用
 const hello = {
