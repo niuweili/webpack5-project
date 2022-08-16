@@ -9,7 +9,7 @@ const { createApp } = require('../dist/js/server.js');
 // const template = fs.readFileSync(path.join(__dirname, '../dist/watch/index.html'), 'utf-8')
 const template = fs.readFileSync(path.join(__dirname, '../dist/watch.html'), 'utf-8')
 const data = require("./data.json")
-
+const fileType = ['css', 'js', 'img']
 
 const runServer = (port) => {
     const server = express()
@@ -24,14 +24,18 @@ const runServer = (port) => {
     server.use('*', (req, res) => {
         const { baseUrl } = req
         const sendFile = path.join(__dirname, `../dist/${baseUrl}`)
-        fs.access(sendFile, fs.constants.R_OK, err => {
-            if (err) {
-                console.error('no match', sendFile);
-                res.status(404).send('no match');
-            } else {
-                res.sendFile(sendFile)
-            }
-        });
+        if (fileType.includes(baseUrl.split('/')[1])) {
+            fs.access(sendFile, fs.constants.R_OK, err => {
+                if (err) {
+                    console.error('no match', sendFile);
+                    res.status(404).send('no match');
+                } else {
+                    res.sendFile(sendFile)
+                }
+            });
+        } else {
+            res.status(404).send('no match');
+        }
     })
 
     server.listen(port, () => {
