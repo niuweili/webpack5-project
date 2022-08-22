@@ -1,0 +1,7 @@
+ ERROR  Failed to compile with 1 errors下午8:12:35
+
+ error  in ./src/watch/index.js
+
+Module not found: Error: Can't resolve '../../../common' in '/Users/niuweili/Desktop/webpack-project/base-project/src/watch'
+
+build error

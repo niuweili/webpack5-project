@@ -2,6 +2,7 @@ const path = require('path');
 const glob = require('glob');
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
 
 const seMPA = () => {
     const entry = {}
@@ -40,6 +41,7 @@ const seMPA = () => {
 const { entry, htmlWebpackPlugins } = seMPA()
 
 module.exports = {
+    stats: 'errors-only',
     // 默认false
     // 某个文件变化后，并不会 立刻告诉监听者，而是先缓存起来，等aggregateTimeout
     // watch: true,
@@ -115,16 +117,19 @@ module.exports = {
         filename: '[name].js'
     },
     mode: "development",
+    devtool: 'source-map',
     // target: 'web',   
     devServer: {
         allowedHosts: 'all',
         static: {
             directory: path.join(__dirname, 'dist'),
         },
-        hot: true   // 开启热更新
+        hot: true,   // 开启热更新
     },
     plugins: [
         // 配合webpack-dev-server实现热更新
-        new webpack.HotModuleReplacementPlugin()
+        new webpack.HotModuleReplacementPlugin(),
+        // 优化构建时的命令行
+        new FriendlyErrorsWebpackPlugin(),
     ].concat(htmlWebpackPlugins),
 }
