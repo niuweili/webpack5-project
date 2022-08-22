@@ -7,6 +7,11 @@ const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const webpack = require('webpack');
 const HtmlWebpackExternalsPlugin = require('html-webpack-externals-plugin')
+const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
+const BuildErrorPlugin = require("./plugins/buildErrorPlugin.js")
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const SpeedMeasurePlugin = require("speed-measure-webpack-plugin");
+const smp = new SpeedMeasurePlugin();
 
 // 多页面打包
 const seMPA = () => {
@@ -45,12 +50,51 @@ const seMPA = () => {
 
 const { entry, htmlWebpackPlugins } = seMPA()
 
-module.exports = {
+const plugins = [
+    // 自动清除打包产物
+    new CleanWebpackPlugin(),
+    // 开启scope hoisting(mode=production不需要)
+    // new webpack.optimize.ModuleConcatenationPlugin(),
+
+    // 优化构建时的命令行
+    new FriendlyErrorsWebpackPlugin(),
+    // 抛出构建error
+    new BuildErrorPlugin(),
+    // 使用vue的cdn资源
+    // new HtmlWebpackExternalsPlugin({
+    //     externals: [
+    //         {
+    //             module: 'vue',
+    //             entry: 'https://unpkg.com/vue@3.2.36/dist/vue.global.js',
+    //             global: 'Vue'
+    //         },
+    //     ],
+    // })
+    // 打包体积分析plugin
+    // new BundleAnalyzerPlugin()
+
+    // DLL-引用分包的js
+    new webpack.DllReferencePlugin({
+        manifest: require('./dll/library.json'),
+    })
+].concat(htmlWebpackPlugins)
+
+// webpack速度分析插件
+// const webpackConfig = smp.wrap({
+const webpackConfig = {
     module: {
         rules: [
             {
                 test: /\.js$/,
+                include: path.resolve('src'),
                 use: [
+                    // 使用thread-loader进行多进程多实例打包（webpack5提速不太明显）
+                    {
+                        loader: 'thread-loader',
+                        options: {
+                            workers: 3
+                        },
+                    },
                     'babel-loader',
                 ]
             },
@@ -111,7 +155,10 @@ module.exports = {
         minimizer: [
             // css代码压缩
             new CssMinimizerPlugin(),
-            new TerserPlugin() // 为了解决使用CssMinimizerPlugin后js文件无法被压缩
+            // 为了解决使用CssMinimizerPlugin后js文件无法被压缩
+            new TerserPlugin({
+                parallel: true // 多进程多实例并行压缩
+            })
         ],
         splitChunks: {
             minSize: 0, // 被引用的文件大小
@@ -124,11 +171,11 @@ module.exports = {
                 //     chunks: 'all',
                 // },
                 // vue资源单独打包到vendors.js中
-                vendors: {
-                    test: /vue/,
-                    name: 'vendors',
-                    chunks: 'all',
-                },
+                // vendors: {
+                //     test: /vue/,
+                //     name: 'vendors',
+                //     chunks: 'all',
+                // },
             },
         },
     },
@@ -149,29 +196,22 @@ module.exports = {
             return `${dirName}/js/${name}_[chunkhash].js`
         }
     },
-    // mode: "production",
-    mode: "development",
-    plugins: [
-        // 自动清除打包产物
-        new CleanWebpackPlugin(),
-        // 开启scope hoisting(mode=production不需要)
-        // new webpack.optimize.ModuleConcatenationPlugin(),
-        // 将css提取到单独的文件中
-        new MiniCssExtractPlugin({
-            filename: function (chunkData) {
-                const { name } = chunkData.chunk
-                return `${name}/css/${name}_[contenthash].css`
-            }
-        }),
-        // 使用vue的cdn资源
-        // new HtmlWebpackExternalsPlugin({
-        //     externals: [
-        //         {
-        //             module: 'vue',
-        //             entry: 'https://unpkg.com/vue@3.2.36/dist/vue.global.js',
-        //             global: 'Vue'
-        //         },
-        //     ],
-        // })
-    ].concat(htmlWebpackPlugins),
+    mode: "production",
+    // mode: "development",
+    // 构建时只输出error信息
+    // stats: 'errors-only',
+    plugins,
+    // })
 }
+
+webpackConfig.plugins.push(
+    // 将css提取到单独的文件中
+    new MiniCssExtractPlugin({
+        filename: function (chunkData) {
+            const { name } = chunkData.chunk
+            return `${name}/css/${name}_[contenthash].css`
+        }
+    }),
+)
+
+module.exports = webpackConfig
