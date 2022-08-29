@@ -11,8 +11,13 @@ const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
 const BuildErrorPlugin = require("./plugins/buildErrorPlugin.js")
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const SpeedMeasurePlugin = require("speed-measure-webpack-plugin");
+const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin');
 const smp = new SpeedMeasurePlugin();
+const PurgeCSSPlugin = require('purgecss-webpack-plugin')
 
+const PATHS = {
+    src: path.join(__dirname, 'src')
+}
 // 多页面打包
 const seMPA = () => {
     const entry = {}
@@ -51,6 +56,7 @@ const seMPA = () => {
 const { entry, htmlWebpackPlugins } = seMPA()
 
 const plugins = [
+    ...htmlWebpackPlugins,
     // 自动清除打包产物
     new CleanWebpackPlugin(),
     // 开启scope hoisting(mode=production不需要)
@@ -76,17 +82,28 @@ const plugins = [
     // DLL-引用分包的js
     new webpack.DllReferencePlugin({
         manifest: require('./dll/library.json'),
-    })
-].concat(htmlWebpackPlugins)
+    }),
+    // 将dll.js添加到html
+    new AddAssetHtmlPlugin({
+        glob: path.resolve(__dirname, './dll/*.dll.js'),
+    }),
+    // 去掉没有用到的css
+    new PurgeCSSPlugin({
+        paths: glob.sync(`${PATHS.src}/**/*`, { nodir: true }),
+    }),
+]
 
 // webpack速度分析插件
 // const webpackConfig = smp.wrap({
 const webpackConfig = {
+    // cache: {
+    //     type: 'filesystem',
+    //     version: '1.0.0',
+    // },
     module: {
         rules: [
             {
                 test: /\.js$/,
-                include: path.resolve('src'),
                 use: [
                     // 使用thread-loader进行多进程多实例打包（webpack5提速不太明显）
                     {
@@ -96,7 +113,10 @@ const webpackConfig = {
                         },
                     },
                     'babel-loader',
-                ]
+                ],
+                // exclude: ['node_modules']
+                include: path.resolve('src'),
+
             },
             {
                 test: /\.vue$/,
@@ -120,22 +140,47 @@ const webpackConfig = {
                 ]
             },
             {
-                test: /\.(png|jpn|gif|jpeg)$/,
-                // use: [
-                //     {
-                //         loader: 'file-loader',
-                //         options: {
-                //             name: '[name]_[hash:8].[ext]'
-                //         }
-                //     }
-                // ],
-                type: 'asset/resource',
+                test: /\.(png|jpg|gif|jpeg)$/,
+                // asset 资源类型可以根据指定的图片大小来判断是否需要将图片转化为 base64
+                type: 'asset',
+                parser: {
+                    dataUrlCondition: {
+                        maxSize: 10 * 1024 // 限制于 10kb
+                    },
+                },
                 generator: {
                     filename: function (chunkData) {
                         const dirName = chunkData.runtime
                         return `${dirName}/img/[name]_[hash:8][ext]`
                     }
-                }
+                },
+                // 图片压缩的配置
+                use: [
+                    {
+
+                        loader: 'image-webpack-loader',
+                        options: {
+                            mozjpeg: {
+                                progressive: true
+                            },
+                            // optipng.enabled: false will disable optipng
+                            optipng: {
+                                enabled: false
+                            },
+                            pngquant: {
+                                quality: [0.65, 0.9],
+                                speed: 4
+                            },
+                            gifsicle: {
+                                interlaced: false
+                            },
+                            // the webp option will enable WEBP
+                            webp: {
+                                quality: 75
+                            }
+                        }
+                    }
+                ]
             },
             {
                 test: /\.(woff|woff2|eot|ttf)$/,
@@ -149,6 +194,15 @@ const webpackConfig = {
             }
         ]
     },
+    resolve: {
+        // alias添加后打包速度会变慢！！
+        // alias: {
+        //     'vue': path.resolve(__dirname, './node_modules/vue/index.js')
+        // },
+        mainFields: ['browser', 'module', 'main'],
+        modules: [path.resolve(__dirname, 'src'), 'node_modules'],
+        extensions: ['.js'],
+    },
     // devtool: 'source-map', // 是否开启source-map
     optimization: {
         // minimize: false,  // 代码是否会被压缩
@@ -157,7 +211,7 @@ const webpackConfig = {
             new CssMinimizerPlugin(),
             // 为了解决使用CssMinimizerPlugin后js文件无法被压缩
             new TerserPlugin({
-                parallel: true // 多进程多实例并行压缩
+                parallel: true, // 多进程多实例并行压缩
             })
         ],
         splitChunks: {
