@@ -3,6 +3,7 @@ const glob = require('glob');
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin');
+const { VueLoaderPlugin } = require('vue-loader')
 
 const seMPA = () => {
     const entry = {}
@@ -100,17 +101,17 @@ module.exports = {
             },
         ]
     },
-    optimization: {
-        splitChunks: {
-            cacheGroups: {
-                commons: {
-                    test: /vue/,
-                    name: 'vendors',
-                    chunks: 'all',
-                },
-            },
-        },
-    },
+    // optimization: {
+    //     splitChunks: {
+    //         cacheGroups: {
+    //             commons: {
+    //                 test: /vue/,
+    //                 name: 'vendors',
+    //                 chunks: 'all',
+    //             },
+    //         },
+    //     },
+    // },
     entry,
     output: {
         path: path.join(__dirname, 'dist'),
@@ -125,11 +126,14 @@ module.exports = {
             directory: path.join(__dirname, 'dist'),
         },
         hot: true,   // 开启热更新
+        open: false,
     },
     plugins: [
         // 配合webpack-dev-server实现热更新
         new webpack.HotModuleReplacementPlugin(),
         // 优化构建时的命令行
         new FriendlyErrorsWebpackPlugin(),
+        // 解析vue
+        new VueLoaderPlugin()
     ].concat(htmlWebpackPlugins),
 }
