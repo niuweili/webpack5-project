@@ -12,13 +12,6 @@ runLoaders({
             options: {
                 name: 'test'
             }
-        },
-        {
-            loader: path.join(__dirname, './loaders/file-loader.js'),
-            // 传入的参数
-            options: {
-                name: '[name].[ext]'
-            }
         }
     ],
     context: { minimize: true },

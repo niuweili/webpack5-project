@@ -45,11 +45,12 @@ result--> {
     存在依赖的loader时无法使用缓存
 
 
-### loader如何进行文件输出
+### loader如何进行文件输出（使用webpack运行）
+参考[file-loader](https://github.com/webpack-contrib/file-loader/blob/master/src/index.js)
 
 ```
 // 获取文件中的占位符
 const url = loaderUtils.interpolateName(this, options.name, options)
 
-this.emitFile() // 输出文件
+this.emitFile() // 要在webpack环境里才会有
 ```
