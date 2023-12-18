@@ -1,0 +1,16 @@
+{
+  "name": "sprite-loader",
+  "version": "1.0.0",
+  "description": "[spritesmith](https://www.npmjs.com/package/spritesmith)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "loader-runner": "^4.3.0",
+    "spritesmith": "^3.4.1",
+    "webpack": "^5.89.0"
+  }
+}

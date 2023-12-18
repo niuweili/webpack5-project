@@ -1,0 +1,11 @@
+.img1 {
+    background: url(./images/box1.png?__sprite);
+}
+
+.img2 {
+    background: url(./images/box2.png?__sprite);
+}
+
+.img3 {
+    background: url(./images/box3.png);
+}
